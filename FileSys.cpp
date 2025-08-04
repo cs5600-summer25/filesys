@@ -254,6 +254,7 @@ void FileSys::create(const char *name) {
 }
 
 // append data to a data file
+<<<<<<< HEAD
 void FileSys::append(const char *name, const char *data) {
     dirblock_t curr;
     bfs.read_block(curr_dir, (void *) &curr);
@@ -269,27 +270,50 @@ void FileSys::append(const char *name, const char *data) {
     }
 
     if (file_index == -1) {
+=======
+//void FileSys::append(const char *name, const char *data) {}
+void FileSys::append(const char *name, const char *data) {
+    // find the file
+    short fileBlk = getBlkByName(name);
+    if (fileBlk == 0) {
+>>>>>>> ffa8c44 (add append implementation)
         cout << "Error: File does not exist" << endl;
         return;
     }
 
+<<<<<<< HEAD
     // Read the inode
     inode_t inode;
     bfs.read_block(curr.dir_entries[file_index].block_num, (void *) &inode);
 
     // Check if it's a file (not directory)
     if (inode.magic != INODE_MAGIC_NUM) {
+=======
+    // must be a file
+    if (!checkIfFile(fileBlk)) {
+>>>>>>> ffa8c44 (add append implementation)
         cout << "Error: File is a directory" << endl;
         return;
     }
 
+<<<<<<< HEAD
     // Check if append would exceed maximum file size
     unsigned int data_len = strlen(data);
     if (inode.size + data_len > MAX_DATA_BLOCKS * BLOCK_SIZE) {
+=======
+    // read inode
+    inode_t node;
+    bfs.read_block(fileBlk, (void *)&node);
+
+    int curSize = node.size;
+    int addLen = strlen(data);
+    if (curSize + addLen > MAX_FILE_SIZE) {
+>>>>>>> ffa8c44 (add append implementation)
         cout << "Error: Append exceeds maximum file size" << endl;
         return;
     }
 
+<<<<<<< HEAD
     // Append the data
     unsigned int data_pos = 0;
     while (data_pos < data_len) {
@@ -330,6 +354,53 @@ void FileSys::append(const char *name, const char *data) {
 
     // Update inode
     bfs.write_block(curr.dir_entries[file_index].block_num, (void *) &inode);
+=======
+    int left = addLen;
+    const char *p = data;
+
+    // fill the last block first
+    int lastIdx = curSize / BLOCK_SIZE;
+    int offset = curSize % BLOCK_SIZE;
+
+    if (offset != 0) {
+        datablock_t lastBlk;
+        bfs.read_block(node.blocks[lastIdx], (void *)&lastBlk);
+
+        int canWrite = min(BLOCK_SIZE - offset, left);
+        memcpy(lastBlk.data + offset, p, canWrite);
+        bfs.write_block(node.blocks[lastIdx], (void *)&lastBlk);
+
+        p += canWrite;
+        left -= canWrite;
+        curSize += canWrite;
+    }
+
+    // write to new blocks if still have data
+    while (left > 0) {
+        short newBlk = bfs.get_free_block();
+        if (newBlk == 0) {
+            cout << "Error: Disk is full" << endl;
+            return;
+        }
+
+        datablock_t db;
+        memset(&db, 0, sizeof(db));
+
+        int toWrite = min(BLOCK_SIZE, left);
+        memcpy(db.data, p, toWrite);
+        bfs.write_block(newBlk, (void *)&db);
+
+        node.blocks[lastIdx] = newBlk;
+        lastIdx++;
+        p += toWrite;
+        left -= toWrite;
+        curSize += toWrite;
+    }
+
+    // save inode
+    node.size = curSize;
+    bfs.write_block(fileBlk, (void *)&node);
+>>>>>>> ffa8c44 (add append implementation)
 }
 
 // display the contents of a data file
@@ -345,9 +416,29 @@ void FileSys::rm(const char *name) {
 }
 
 // display stats about file or directory
-void FileSys::stat(const char *name) {}
+// void FileSys::stat(const char *name) {}
+void FileSys::stat(const char *name) {
+    short blk = getBlkByName(name);
+    if (blk == 0) {
+        cout << "Error: File does not exist" << endl;
+        return;
+    }
+
+    if (checkIfDir(blk)) {
+        cout << "Directory name: " << name << "/" << endl;
+        cout << "Directory block: " << blk << endl;
+    } else if (checkIfFile(blk)) {
+        inode_t node;
+        bfs.read_block(blk, (void *)&node);
+        cout << "Inode block: " << blk << endl;
+        cout << "Bytes in file: " << node.size << endl;
+    } else {
+        cout << "Error: Unknown file type" << endl;
+    }
+}
 
 // HELPER FUNCTIONS (optional)
+<<<<<<< HEAD
 bool FileSys::is_directory(short block_num) {
     char buffer[BLOCK_SIZE];
     bfs.read_block(block_num, &buffer);
@@ -358,3 +449,47 @@ bool FileSys::is_directory(short block_num) {
     return magic == DIR_MAGIC_NUM;
 }
 
+=======
+bool FileSys::checkIfDir(short blk) {
+    dirblock_t tempDir;
+    bfs.read_block(blk, (void *)&tempDir);
+    return tempDir.magic == DIR_MAGIC_NUM;
+}
+
+bool FileSys::checkIfFile(short blk) {
+    inode_t tempFile;
+    bfs.read_block(blk, (void *)&tempFile);
+    return tempFile.magic == INODE_MAGIC_NUM;
+}
+
+short FileSys::getBlkByName(const char *fname) {
+    dirblock_t cur;
+    bfs.read_block(curr_dir, (void *)&cur);
+    for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
+        if (cur.dir_entries[i].block_num != 0 &&
+            strcmp(cur.dir_entries[i].name, fname) == 0) {
+            return cur.dir_entries[i].block_num;
+        }
+    }
+    return 0; // nope, not found
+}
+
+bool FileSys::dirHasRoom() {
+    dirblock_t cur;
+    bfs.read_block(curr_dir, (void *)&cur);
+    for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
+        if (cur.dir_entries[i].block_num == 0) {
+            return true; // found a hole
+        }
+    }
+    return false;
+}
+
+void FileSys::readCurrDir(dirblock_t &d) {
+    bfs.read_block(curr_dir, (void *)&d);
+}
+
+void FileSys::writeCurrDir(dirblock_t &d) {
+    bfs.write_block(curr_dir, (void *)&d);
+}
+>>>>>>> ffa8c44 (add append implementation)
