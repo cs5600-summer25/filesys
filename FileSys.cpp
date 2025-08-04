@@ -18,7 +18,7 @@ void FileSys::mount() {
 
 // unmounts the file system
 void FileSys::unmount() {
-  
+
     bfs.unmount();
 }
 
@@ -189,10 +189,10 @@ void FileSys::ls() {
 
 // create an empty data file
 void FileSys::create(const char *name) {
-  if (strlen(name) > MAX_FNAME_SIZE) {
-    cout << "Error: Filename is too long" << endl;
-    return;
-  }
+    if (strlen(name) > MAX_FNAME_SIZE) {
+        cout << "Error: Filename is too long" << endl;
+        return;
+    }
 
     // read current directory
     dirblock_t curr;
@@ -207,51 +207,42 @@ void FileSys::create(const char *name) {
         }
     }
 
-  // check if file already exists
-  for (int i = 0; i < MAX_DIR_ENTRIES; ++i) {
-    if (curr.dir_entries[i].block_num != 0 &&
-        strcmp(curr.dir_entries[i].name, name) == 0) {
-      cout << "Error: File exists" << endl;
-      return;
+    // find a free entry in the directory
+    int free_index = -1;
+    for (int i = 0; i < MAX_DIR_ENTRIES; ++i) {
+        if (curr.dir_entries[i].block_num == 0) {
+            free_index = i;
+            break;
+        }
     }
-  }
-
-  // find a free entry in the directory
-  int free_index = -1;
-  for (int i = 0; i < MAX_DIR_ENTRIES; ++i) {
-    if (curr.dir_entries[i].block_num == 0) {
-      free_index = i;
-      break;
+    if (free_index == -1) {
+        cout << "Error: Directory is full" << endl;
+        return;
     }
-  }
-  if (free_index == -1) {
-    cout << "Error: Directory is full" << endl;
-    return;
-  }
 
 
-  // allocate inode
-  short new_inode_block = bfs.get_free_block();
-  if (new_inode_block == 0) {
-    cout << "Error: Disk is full" << endl;
-    return;
-  }
+    // allocate inode
+    short new_inode_block = bfs.get_free_block();
+    if (new_inode_block == 0) {
+        cout << "Error: Disk is full" << endl;
+        return;
+    }
 
-  // initialize inode
-  inode_t inode;
-  memset(&inode, 0, sizeof(inode));
-  inode.magic = INODE_MAGIC_NUM;
-  inode.size = 0;
-  for (int i = 0; i < MAX_DATA_BLOCKS; i++) {
-    inode.blocks[i] = 0;
-  }
-  bfs.write_block(new_inode_block, (void *)&inode);
+    // initialize inode
+    inode_t inode;
+    memset(&inode, 0, sizeof(inode));
+    inode.magic = INODE_MAGIC_NUM;
+    inode.size = 0;
+    for (int i = 0; i < MAX_DATA_BLOCKS; i++) {
+        inode.blocks[i] = 0;
+    }
+    bfs.write_block(new_inode_block, (void *) &inode);
 
-  strcpy(curr.dir_entries[free_index].name, name);
-  curr.dir_entries[free_index].block_num = new_inode_block;
-  curr.num_entries++;
+    strcpy(curr.dir_entries[free_index].name, name);
+    curr.dir_entries[free_index].block_num = new_inode_block;
+    curr.num_entries++;
 
-  bfs.write_block(curr_dir, (void *)&curr);
+    bfs.write_block(curr_dir, (void *) &curr);
 }
 
 // append data to a data file
@@ -343,10 +334,58 @@ void FileSys::tail(const char *name, unsigned int n) {
 
 // delete a data file
 void FileSys::rm(const char *name) {
+    // Get current directory
+    dirblock_t curr_d{};
+    bfs.read_block(curr_dir, &curr_d);
+
+    for (int i = 0; i < curr_d.num_entries; i++) {
+        if (strcmp(curr_d.dir_entries[i].name, name) == 0) {
+            short target_block_num = curr_d.dir_entries[i].block_num;
+            if (is_directory(target_block_num)) {
+                cout << "File is a directory" << endl;
+                return;
+            }
+
+            // get the inode
+            inode_t target_inode{};
+            bfs.read_block(target_block_num, &target_inode);
+
+            // loop through data block and reclaim each of them
+            for (int j = 0; j < MAX_DATA_BLOCKS; j++) {
+                if (target_inode.blocks[i] != 0) {
+                    bfs.reclaim_block(target_inode.blocks[i]);
+                }
+            }
+
+            // reclaim the inode itself
+            bfs.reclaim_block(target_block_num);
+
+            // remove the target inode from entry
+            for (int j = i; j < curr_d.num_entries - 1; j++) {
+                curr_d.dir_entries[j] = curr_d.dir_entries[j + 1];
+            }
+
+            // Clear the last entry
+            curr_d.dir_entries[curr_d.num_entries - 1].name[0] = '\0';
+            curr_d.dir_entries[curr_d.num_entries - 1].block_num = 0;
+
+            // decrement entry count
+            curr_d.num_entries--;
+
+            // save changes to disk
+            bfs.write_block(curr_dir, &curr_d);
+
+            // FOR DEBUG
+            cout << "File removed successfully" << endl;
+            return;
+        }
+    }
+
+    // if there is not matching name under current dir
+    cout << "File does not exist" << endl;
 }
 
 // display stats about file or directory
-// void FileSys::stat(const char *name) {}
 void FileSys::stat(const char *name) {
     short blk = getBlkByName(name);
     if (blk == 0) {
@@ -359,7 +398,7 @@ void FileSys::stat(const char *name) {
         cout << "Directory block: " << blk << endl;
     } else if (checkIfFile(blk)) {
         inode_t node;
-        bfs.read_block(blk, (void *)&node);
+        bfs.read_block(blk, (void *) &node);
         cout << "Inode block: " << blk << endl;
         cout << "Bytes in file: " << node.size << endl;
     } else {
@@ -380,19 +419,19 @@ bool FileSys::is_directory(short block_num) {
 
 bool FileSys::checkIfDir(short blk) {
     dirblock_t tempDir;
-    bfs.read_block(blk, (void *)&tempDir);
+    bfs.read_block(blk, (void *) &tempDir);
     return tempDir.magic == DIR_MAGIC_NUM;
 }
 
 bool FileSys::checkIfFile(short blk) {
     inode_t tempFile;
-    bfs.read_block(blk, (void *)&tempFile);
+    bfs.read_block(blk, (void *) &tempFile);
     return tempFile.magic == INODE_MAGIC_NUM;
 }
 
 short FileSys::getBlkByName(const char *fname) {
     dirblock_t cur;
-    bfs.read_block(curr_dir, (void *)&cur);
+    bfs.read_block(curr_dir, (void *) &cur);
     for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
         if (cur.dir_entries[i].block_num != 0 &&
             strcmp(cur.dir_entries[i].name, fname) == 0) {
@@ -404,7 +443,7 @@ short FileSys::getBlkByName(const char *fname) {
 
 bool FileSys::dirHasRoom() {
     dirblock_t cur;
-    bfs.read_block(curr_dir, (void *)&cur);
+    bfs.read_block(curr_dir, (void *) &cur);
     for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
         if (cur.dir_entries[i].block_num == 0) {
             return true; // found a hole
@@ -414,9 +453,9 @@ bool FileSys::dirHasRoom() {
 }
 
 void FileSys::readCurrDir(dirblock_t &d) {
-    bfs.read_block(curr_dir, (void *)&d);
+    bfs.read_block(curr_dir, (void *) &d);
 }
 
 void FileSys::writeCurrDir(dirblock_t &d) {
-    bfs.write_block(curr_dir, (void *)&d);
+    bfs.write_block(curr_dir, (void *) &d);
 }
