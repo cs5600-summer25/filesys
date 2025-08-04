@@ -5,6 +5,7 @@
 #define FILESYS_H
 
 #include "BasicFileSys.h"
+#include "Blocks.h"
 
 class FileSys {
 
@@ -48,12 +49,18 @@ public:
     // display stats about file or directory
     void stat(const char *name);
 
-private:
-    BasicFileSys bfs;    // basic file system
-    short curr_dir;    // current directory
 
+  private:
+    BasicFileSys bfs;	// basic file system
+    short curr_dir;	// current directory
     // helper functions
     bool is_directory(short block_num);
+    bool checkIfDir(short blk);// some helper method
+    bool checkIfFile(short blk);
+    short getBlkByName(const char *fname);
+    bool dirHasRoom();
+    void readCurrDir(dirblock_t &d);
+    void writeCurrDir(dirblock_t &d);
 };
 
 #endif 
