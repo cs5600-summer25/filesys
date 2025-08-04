@@ -7,8 +7,8 @@
 #include "BasicFileSys.h"
 
 class FileSys {
-  
-  public:
+
+public:
     // mounts the file system
     void mount();
 
@@ -20,10 +20,10 @@ class FileSys {
 
     // switch to a directory
     void cd(const char *name);
-    
+
     // switch to home directory
     void home();
-    
+
     // remove a directory
     void rmdir(const char *name);
 
@@ -48,9 +48,12 @@ class FileSys {
     // display stats about file or directory
     void stat(const char *name);
 
-  private:
-    BasicFileSys bfs;	// basic file system
-    short curr_dir;	// current directory
+private:
+    BasicFileSys bfs;    // basic file system
+    short curr_dir;    // current directory
+
+    // helper functions
+    bool is_directory(short block_num);
 };
 
 #endif 
