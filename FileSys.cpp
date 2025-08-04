@@ -212,14 +212,14 @@ void FileSys::append(const char *name, const char *data) {
 
     // Check if it's a file (not directory)
     if (inode.magic != INODE_MAGIC_NUM) {
-        cout << "File is a directory" << endl;
+        cout << "Error: File is a directory" << endl;
         return;
     }
 
     // Check if append would exceed maximum file size
     unsigned int data_len = strlen(data);
     if (inode.size + data_len > MAX_DATA_BLOCKS * BLOCK_SIZE) {
-        cout << "Append exceeds maximum file size" << endl;
+        cout << "Error: Append exceeds maximum file size" << endl;
         return;
     }
 
@@ -282,59 +282,6 @@ void FileSys::rm(const char *name)
 
 // display stats about file or directory
 void FileSys::stat(const char *name) {
-    dirblock_t curr;
-    bfs.read_block(curr_dir, (void*)&curr);
-
-    // Find the entry
-    int entry_index = -1;
-    for (int i = 0; i < MAX_DIR_ENTRIES; ++i) {
-        if (curr.dir_entries[i].block_num != 0 &&
-            strcmp(curr.dir_entries[i].name, name) == 0) {
-            entry_index = i;
-            break;
-        }
-    }
-
-    if (entry_index == -1) {
-        cout << "File does not exist" << endl;
-        return;
-    }
-
-    // Read the block to determine type
-    dirblock_t test_block;
-    bfs.read_block(curr.dir_entries[entry_index].block_num, (void*)&test_block);
-
-    if (test_block.magic == DIR_MAGIC_NUM) {
-        // It's a directory
-        cout << "Directory name: " << name << "/" << endl;
-        cout << "Directory block: " << curr.dir_entries[entry_index].block_num << endl;
-    } else {
-        // It's a file (inode)
-        inode_t inode;
-        bfs.read_block(curr.dir_entries[entry_index].block_num, (void*)&inode);
-
-        cout << "Inode block: " << curr.dir_entries[entry_index].block_num << endl;
-        cout << "Bytes in file: " << inode.size << endl;
-
-        // Count number of blocks (inode + data blocks)
-        int num_blocks = 1; // inode block
-        for (int i = 0; i < MAX_DATA_BLOCKS; i++) {
-            if (inode.blocks[i] != 0) {
-                num_blocks++;
-            }
-        }
-        cout << "Number of blocks: " << num_blocks << endl;
-
-        // First data block (or 0 if empty)
-        short first_block = 0;
-        for (int i = 0; i < MAX_DATA_BLOCKS; i++) {
-            if (inode.blocks[i] != 0) {
-                first_block = inode.blocks[i];
-                break;
-            }
-        }
-        cout << "First block: " << first_block << endl;
-    }
 }
 
 
