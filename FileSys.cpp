@@ -347,6 +347,7 @@ void FileSys::rm(const char *name) {
             }
 
             // get the inode
+
             inode_t target_inode{};
             bfs.read_block(target_block_num, &target_inode);
 
