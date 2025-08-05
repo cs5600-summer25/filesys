@@ -325,7 +325,47 @@ void FileSys::append(const char *name, const char *data) {
 }
 
 // display the contents of a data file
+// void FileSys::cat(const char *name) {
+// }
 void FileSys::cat(const char *name) {
+    // find file block
+    short fileBlock = getBlkByName(name);
+    if (fileBlock == 0) {
+        cout << "Error: File does not exist" << endl;
+        return;
+    }
+
+    // check it's not a directory
+    if (!checkIfFile(fileBlock)) {
+        cout << "Error: File is a directory" << endl;
+        return;
+    }
+
+    // read inode
+    inode_t fileInode;
+    bfs.read_block(fileBlock, (void *)&fileInode);
+
+    // empty file just newline
+    if (fileInode.size == 0) {
+        cout << endl;
+        return;
+    }
+
+    int remaining = fileInode.size;
+    for (int blkIdx = 0; blkIdx < MAX_DATA_BLOCKS && remaining > 0; blkIdx++) {
+        if (fileInode.blocks[blkIdx] == 0) break;
+
+        datablock_t dataBlk;
+        bfs.read_block(fileInode.blocks[blkIdx], (void *)&dataBlk);
+
+        int bytesToPrint = min(BLOCK_SIZE, remaining);
+        for (int i = 0; i < bytesToPrint; i++) {
+            cout << dataBlk.data[i];
+        }
+        remaining -= bytesToPrint;
+    }
+
+    cout << endl; // always end with newline
 }
 
 // display the last N bytes of the file
