@@ -330,6 +330,73 @@ void FileSys::cat(const char *name) {
 
 // display the last N bytes of the file
 void FileSys::tail(const char *name, unsigned int n) {
+    // Get current directory
+    dirblock_t curr_d{};
+    bfs.read_block(curr_dir, &curr_d);
+
+    for (int i = 0; i < curr_d.num_entries; i++) {
+        if (strcmp(curr_d.dir_entries[i].name, name) == 0) {
+            short target_block_num = curr_d.dir_entries[i].block_num;
+            if (is_directory(target_block_num)) {
+                cout << "File is a directory" << endl;
+                return;
+            }
+
+            // get the inode
+            inode_t target_inode{};
+            bfs.read_block(target_block_num, &target_inode);
+
+            // If file is empty
+            if (target_inode.size == 0) {
+                cout << "<File Empty>" << endl;
+                return;
+            }
+
+            // get the start index
+            unsigned int start_idx = 0;
+            if (n < target_inode.size) {
+                start_idx = target_inode.size - n;
+            }
+
+            unsigned int start_block_index = start_idx / BLOCK_SIZE;
+            unsigned int start_offset = start_idx % BLOCK_SIZE;
+
+            // Calculate how many bytes to read
+            unsigned int bytes_to_read = target_inode.size - start_idx;
+
+            // Read and output the data
+            datablock_t block{};
+            unsigned int current_block = start_block_index;
+            unsigned int current_offset = start_offset;
+            unsigned int bytes_read = 0;
+
+            while (bytes_read < bytes_to_read && current_block < MAX_DATA_BLOCKS) {
+                // Read the current data block
+                bfs.read_block(target_inode.blocks[current_block], &block);
+
+                // Calculate how many bytes to read from this block
+                unsigned int bytes_from_block = min(
+                        BLOCK_SIZE - current_offset,
+                        bytes_to_read - bytes_read
+                );
+
+                // Output the bytes
+                for (unsigned int j = 0; j < bytes_from_block; j++) {
+                    cout << block.data[current_offset + j];
+                }
+
+                // Update counters
+                bytes_read += bytes_from_block;
+                current_block++;
+                current_offset = 0;  // After first block, always start at beginning
+            }
+            cout << endl;
+            return;
+        }
+    }
+
+    // if there is not matching name under current dir
+    cout << "File does not exist" << endl;
 }
 
 // delete a data file
@@ -377,7 +444,8 @@ void FileSys::rm(const char *name) {
             bfs.write_block(curr_dir, &curr_d);
 
             // FOR DEBUG
-            cout << "File removed successfully" << endl;
+            // for DEBUG
+            cout << "Removed File: " << name << endl;
             return;
         }
     }
