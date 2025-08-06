@@ -87,7 +87,17 @@ File is a directory
 ```
 ---
 #### `append` command
-
+```
+FS> create banana
+FS> append banana 123456
+FS> cat banana
+123456
+// error handling
+FS> append no 1234546
+Error: File does not exist
+FS> append dir1 123456
+Error: File is a directory
+```
 ---
 
 #### `stat` command
