@@ -1,5 +1,5 @@
 # Simple File System
-*by Yixuan S, Yuchen J, Jiagyi Z*
+*by Yixuan Sun, Yuchen J, Jiagyi Z*
 
 A simulation for file system that provide generic file system commands
 
@@ -85,3 +85,33 @@ FS> mkdir dir1
 FS> tail dir1 10
 File is a directory
 ```
+
+#### `append` command
+### `stat` command
+```
+
+FS> create file1
+FS> stat file1
+Inode block: 2
+Bytes in file: 0
+FS> append file1 abc
+FS> stat file1
+Inode block: 2
+Bytes in file: 3
+FS> append file1 defg
+FS> stat file1
+Inode block: 2
+Bytes in file: 7
+FS> quit
+
+
+#### `cat` command
+```
+
+./filesys
+FS> create file1
+FS> append file1 abc
+FS> append file1 defg
+FS> cat file1
+abcdefg
+FS> quit
