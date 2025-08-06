@@ -85,11 +85,13 @@ FS> mkdir dir1
 FS> tail dir1 10
 File is a directory
 ```
-
+---
 #### `append` command
-### `stat` command
-```
 
+---
+
+#### `stat` command
+```
 FS> create file1
 FS> stat file1
 Inode block: 2
@@ -102,16 +104,14 @@ FS> append file1 defg
 FS> stat file1
 Inode block: 2
 Bytes in file: 7
-FS> quit
-
-
-#### `cat` command
 ```
+---
+#### `cat` command
 
-./filesys
+```
 FS> create file1
 FS> append file1 abc
 FS> append file1 defg
 FS> cat file1
 abcdefg
-FS> quit
+```
