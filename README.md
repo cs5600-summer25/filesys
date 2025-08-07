@@ -1,5 +1,5 @@
 # Simple File System
-*by Yixuan Sun, Yuchen J, Jiagyi Z*
+*by Yixuan S, Yuchen J, Jiagyi Z*
 
 A simulation for file system that provide generic file system commands
 
@@ -16,6 +16,57 @@ make
 ```
 
 ## Sample Output
+
+#### `ls` command
+```
+FS> create apple
+FS> ls
+apple
+```
+---
+#### `cd` command
+```
+FS> mkdir apple
+FS> ls
+apple/
+FS> cd apple
+FS> ls
+FS>
+```
+---
+#### `home` command
+```
+FS> ls
+file1
+dir1/
+FS> cd dir1
+FS> ls
+FS> home
+FS> ls
+file1
+dir1/
+```
+---
+#### `create` command
+```
+FS> ls
+file1
+dir1/
+// error handling
+FS> create file1
+Error: File exists
+FS> create asdfghjkl;wqeq
+Error: Filename is too long
+FS> create dir1
+Error: File exists
+// creating file
+FS> create file2
+FS> ls
+file1
+dir1/
+file2
+```
+---
 
 #### `rm` command
 ```
