@@ -47,6 +47,24 @@ file1
 dir1/
 ```
 ---
+#### `mkdir` command
+```
+FS> ls 
+file1
+dir1/
+// error-handling
+FS> mkdir file1
+Error: File exists
+FS> mkdir 1923u10irh1oibjrf
+Error: File name is too long
+// create a directory
+FS> mkdir dir2
+FS> ls
+file1
+dir1/
+dir2/
+```
+---
 #### `create` command
 ```
 FS> ls
