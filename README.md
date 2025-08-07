@@ -1,5 +1,5 @@
 # Simple File System
-*by Yixuan S, Yuchen J, Jiagyi Z*
+*by Yixuan S, Yuchen J, Jiayi Z*
 
 A simulation for file system that provide generic file system commands
 
